@@ -9,8 +9,7 @@ const port = process.env.PORT || 5000
 app.use(express.json())
 app.use(cors())
 
-// MomentumDaily
-// jaB6FHZmf4BdOEVF
+
 
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -29,6 +28,31 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
+   
+    const MomentumDailyCollections = client.db('momentumDB').collection('allArticles')
+
+
+    app.post('/allarticles' , async (req , res ) => {
+        const data = req.body
+        const result = await MomentumDailyCollections.insertOne(data)
+        res.send(result)
+    })
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
