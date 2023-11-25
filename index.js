@@ -30,14 +30,25 @@ async function run() {
     // await client.connect();
    
     const MomentumDailyCollections = client.db('momentumDB').collection('allArticles')
+    const MomentumDailyUserCollections = client.db('momentumDB').collection('allUsers')
 
-
+    // all articles related end points
     app.post('/allarticles' , async (req , res ) => {
         const data = req.body
         const result = await MomentumDailyCollections.insertOne(data)
         res.send(result)
     })
-
+    // user related end points
+    app.post('/users' , async (req , res) => {
+        const users = req.body
+        const query = {email : users.email}
+        const isExist = await MomentumDailyUserCollections.findOne(query)
+        if(isExist){
+            return res.send({message: 'User Already Exist' , insertedId : null})
+        }
+        const result = await MomentumDailyUserCollections.insertOne(users)
+        res.send(result)
+    })
     
 
 
