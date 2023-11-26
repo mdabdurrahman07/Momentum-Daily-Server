@@ -12,7 +12,7 @@ app.use(cors())
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.abtiefd.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -44,10 +44,32 @@ async function run() {
         const query = {email : users.email}
         const isExist = await MomentumDailyUserCollections.findOne(query)
         if(isExist){
-            return res.send({message: 'User Already Exist' , insertedId : null})
+            return res.send({message:'User Already Exist' , insertedId : null})
         }
-        const result = await MomentumDailyUserCollections.insertOne(users)
+        else{
+          const result = await MomentumDailyUserCollections.insertOne(users)
         res.send(result)
+        }
+    })
+    app.get('/users' , async (req , res) => {
+      const email = req.query.email
+      const result = await MomentumDailyUserCollections.findOne({email : email})
+      res.send(result)
+    })
+    // users update 
+    app.put('/users/:id' , async (req , res) => {
+      const users = req.body
+      const id = req.params.id
+      const filter = {_id : new ObjectId(id)}
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+            displayName: users.displayName,
+            photoURL: users.photoURL
+        },
+      };
+      const result = await MomentumDailyUserCollections.updateOne(filter , updateDoc , options)
+      res.send(result)
     })
     
 
