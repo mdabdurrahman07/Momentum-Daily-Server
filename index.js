@@ -38,6 +38,16 @@ async function run() {
         const result = await MomentumDailyCollections.insertOne(data)
         res.send(result)
     })
+    app.get('/allarticles' , async (req , res) => {
+      const result = await MomentumDailyCollections.find().toArray()
+      res.send(result)
+    })
+    // app.get('/allarticles' , async (req , res) => {
+    //   const limit = parseInt(req.query.limit) || 5;
+    //   const offset = parseInt(req.query.offset) || 0
+    //   const result = await MomentumDailyCollections.find().skip(offset).limit(limit).toArray()
+    //   res.send(result)
+    // })
     // user related end points
     app.post('/users' , async (req , res) => {
         const users = req.body
