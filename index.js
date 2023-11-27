@@ -31,6 +31,7 @@ async function run() {
    
     const MomentumDailyCollections = client.db('momentumDB').collection('allArticles')
     const MomentumDailyUserCollections = client.db('momentumDB').collection('allUsers')
+    const MomentumDailyPlansCollections = client.db('momentumDB').collection('plans')
 
     // all articles related end points
     app.post('/allarticles' , async (req , res ) => {
@@ -83,7 +84,11 @@ async function run() {
     })
     
 
-
+    // plans
+    app.get('/plans' , async (req , res )=> {
+      const result = await MomentumDailyPlansCollections.find().toArray()
+      res.send(result)
+    })
 
 
 
