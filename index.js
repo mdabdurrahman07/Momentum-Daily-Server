@@ -2,6 +2,7 @@ const express = require('express')
 const cors = require('cors')
 var jwt = require('jsonwebtoken');
 require('dotenv').config()
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 5000
 
@@ -12,7 +13,7 @@ app.use(cors())
 
 // middlewares for JWT
 const verifyToken = (req , res, next) => {
-     
+  console.log(req.headers.authorized)
   if(!req.headers.authorized){
   return   res.status(401).send({message : "Unauthorized Access"})
   }
@@ -25,9 +26,9 @@ const verifyToken = (req , res, next) => {
     next()
   })
 }
+ 
 
 
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.abtiefd.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -53,7 +54,19 @@ async function run() {
       const token = jwt.sign(user , process.env.ACCESS_TOKEN_SECRET , {expiresIn : '1h'})
       res.send({ token })
     })
+    // verifying admin after verifyToken
 
+ const VerifyAdmin = async (req , res , next) => {
+  const email = req.decoded?.email;
+  console.log(email)
+  const query = {email : email};
+  const user = await MomentumDailyUserCollections.findOne(query);
+  const isAdmin = user?.role === 'Admin';
+  if(!isAdmin){
+    return   res.status(403).send({message : "Forbidden Access"})
+  }
+  next()
+}
 
     // all articles related end points
     app.post('/allarticles' , async (req , res ) => {
@@ -101,7 +114,7 @@ async function run() {
         res.send(result)
         }
     })
-    app.get('/users' , async (req , res) => {
+    app.get('/users' , verifyToken ,VerifyAdmin, async (req , res) => {
       // console.log(req.headers)
       const result = await MomentumDailyUserCollections.find().toArray()
       res.send(result)
@@ -112,7 +125,18 @@ async function run() {
       const result = await MomentumDailyUserCollections.findOne({email : email})
       res.send(result)
     })
-    
+    app.get('/users/admin/:email',  async (req , res) => {
+      console.log('hello')
+      const email = req.params.email
+      const query = {email : email}
+      const result = await MomentumDailyUserCollections.findOne(query)
+      let admin = false 
+      if(result){
+        admin = result.role === "Admin"
+      }
+      
+      res.send({ admin })
+      })
     // users PROFILE update 
     app.put('/users/:id' , async (req , res) => {
       const users = req.body
