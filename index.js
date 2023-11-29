@@ -48,6 +48,7 @@ async function run() {
     const MomentumDailyCollections = client.db('momentumDB').collection('allArticles')
     const MomentumDailyUserCollections = client.db('momentumDB').collection('allUsers')
     const MomentumDailyPlansCollections = client.db('momentumDB').collection('plans')
+    const MomentumDailyPublisherCollections = client.db('momentumDB').collection('publisher')
     // JWT
     app.post('/jwt' , async (req , res)  => {
       const  user = req.body 
@@ -85,14 +86,44 @@ async function run() {
       const result = await MomentumDailyCollections.findOne(query)
       res.send(result)
     })
-    
+    // delete 
+    app.delete('/allarticles/:id' , verifyToken , VerifyAdmin, async(req , res) => {
+      const id = req.params.id
+      const query = {_id: new ObjectId(id)}
+      const result = await MomentumDailyCollections.deleteOne(query)
+      res.send(result)
+    })
     // increment of views 
-    app.put('/allarticles/:id' , async(req , res) => {
+    app.put('/allarticles/:id' , verifyToken , VerifyAdmin, async(req , res) => {
       const {id} = req.params;
       console.log(id)
       const result = await MomentumDailyCollections.updateOne({_id: new ObjectId(id)},
       {$inc: {views: 1}}
       );
+      res.send(result)
+    })
+    // changing Status 
+    app.put('/allarticles/updateStatus/:id' , verifyToken , VerifyAdmin, async (req , res)=>{
+      
+      const id = req.params.id
+      const filter = {_id : new ObjectId(id)}
+      const result = await MomentumDailyCollections.updateOne(filter , {$set:{approved: 'approved'}})
+      res.send(result)
+    })
+    // make premium 
+    app.put('/allarticles/premium/:id' , verifyToken , VerifyAdmin, async (req , res)=>{
+      const id = req.params.id
+      const filter = {_id : new ObjectId(id)}
+      const result = await MomentumDailyCollections.updateOne(filter , {$set:{type: 'Premium'}})
+      res.send(result)
+    })
+    // decline status 
+    app.put('/allarticles/declineStatus/:id' , verifyToken , VerifyAdmin, async (req , res ) => {
+      const id = req.params.id
+      const filter = { _id: new ObjectId(id)}
+      const {reason} = req.body
+      console.log(reason , id)
+      const result = await MomentumDailyCollections.updateOne(filter ,{$set:{ approved: 'declined', reason: reason || null}})
       res.send(result)
     })
     // app.get('/allarticles' , async (req , res) => {
@@ -169,6 +200,16 @@ async function run() {
     // plans
     app.get('/plans' , async (req , res )=> {
       const result = await MomentumDailyPlansCollections.find().toArray()
+      res.send(result)
+    })
+    // publisher
+    app.post('/publisher' , verifyToken , VerifyAdmin, async (req , res) => {
+      const publisher = req.body;
+      const result = await MomentumDailyPublisherCollections.insertOne(publisher)
+      res.send(result)
+    })
+    app.get('/publisher' , async(req , res )=> {
+      const result = await MomentumDailyPublisherCollections.find().toArray()
       res.send(result)
     })
 
