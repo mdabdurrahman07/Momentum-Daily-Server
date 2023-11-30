@@ -213,16 +213,22 @@ async function run() {
         res.send(result)
         }
     })
-    app.get('/users' , verifyToken ,VerifyAdmin, async (req , res) => {
+    app.get('/users' , verifyToken , VerifyAdmin, async (req , res) => {
       // console.log(req.headers)
       const result = await MomentumDailyUserCollections.find().toArray()
       res.send(result)
     })
-    app.get('/users/premium' , verifyToken , async (req , res) => {
+    app.get('/users/premium'  , async (req , res) => {
       // console.log(req.headers)
       const result = await MomentumDailyUserCollections.find().toArray()
       res.send(result)
     })
+    app.get('/users/all'  , async (req , res) => {
+      // console.log(req.headers)
+      const result = await MomentumDailyUserCollections.find().toArray()
+      res.send(result)
+    })
+    
     
     app.get('/users/profile' , async (req , res) => {
       const email = req.query.email
