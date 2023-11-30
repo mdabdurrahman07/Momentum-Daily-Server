@@ -3,6 +3,7 @@ const cors = require('cors')
 var jwt = require('jsonwebtoken');
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require("stripe")(process.env.ACCESS_SECRET_KEY)
 const app = express()
 const port = process.env.PORT || 5000
 
@@ -49,6 +50,31 @@ async function run() {
     const MomentumDailyUserCollections = client.db('momentumDB').collection('allUsers')
     const MomentumDailyPlansCollections = client.db('momentumDB').collection('plans')
     const MomentumDailyPublisherCollections = client.db('momentumDB').collection('publisher')
+
+    // Payment Intent 
+
+    app.post("/create-payment-intent" , async (req, res) =>{
+      const { Price } = req.body
+      console.log('this is price',Price)
+      const amount = parseInt(Price * 100)
+
+      console.log('this is amount',amount)
+
+
+      if(Price > 0 ){
+        const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types : ['card']
+      });
+
+       res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+      }
+    
+     
+  })
     // JWT
     app.post('/jwt' , async (req , res)  => {
       const  user = req.body 
@@ -70,13 +96,55 @@ async function run() {
 }
 
     // all articles related end points
-    app.post('/allarticles' , async (req , res ) => {
+    app.post('/allarticles' , verifyToken, async (req , res ) => {
         const data = req.body
         const result = await MomentumDailyCollections.insertOne(data)
         res.send(result)
     })
     app.get('/allarticles' , async (req , res) => {
       const result = await MomentumDailyCollections.find().toArray()
+      res.send(result)
+    })
+    app.get('/allarticles/myarticles' , verifyToken, async(req , res) => {
+      const email = req.query.email
+      let query = {}
+      if(req.query.email){
+        query = {email: email}
+      }
+      const result = await MomentumDailyCollections.find(query).toArray()
+      res.send(result)
+    })
+    app.delete('/allarticles/myarticles/:id' , verifyToken,  async (req , res) => {
+      const id = req.params.id
+      const query = {_id : new ObjectId(id)}
+      const result = await MomentumDailyCollections.deleteOne(query)
+      res.send(result)
+
+    })
+    app.put('/allarticles/update/:id' , async (req , res) => {
+      const id = req.params.id
+      const query = {_id : new ObjectId(id)}
+      const data = req.body
+      const options = {upsert: true}
+      const updateDoc = {
+        $set: {
+          title: data.title,
+          author: data.author,
+          publisher: data.publisher,
+          shortdescription: data.shortdescription,
+          tags: data.tags,
+          image: data.image,
+          approved: data.approved,
+          type: data.type,
+          description: data.description,
+          email: data.email,
+          authorPic: data.author,
+          date: data.date
+        },
+        
+        
+      };
+      const result = await MomentumDailyCollections.updateOne(query , updateDoc , options )
       res.send(result)
     })
     // dynamic for details
@@ -150,6 +218,11 @@ async function run() {
       const result = await MomentumDailyUserCollections.find().toArray()
       res.send(result)
     })
+    app.get('/users/premium' , verifyToken , async (req , res) => {
+      // console.log(req.headers)
+      const result = await MomentumDailyUserCollections.find().toArray()
+      res.send(result)
+    })
     
     app.get('/users/profile' , async (req , res) => {
       const email = req.query.email
@@ -157,7 +230,6 @@ async function run() {
       res.send(result)
     })
     app.get('/users/admin/:email',  async (req , res) => {
-      console.log('hello')
       const email = req.params.email
       const query = {email : email}
       const result = await MomentumDailyUserCollections.findOne(query)
@@ -169,7 +241,7 @@ async function run() {
       res.send({ admin })
       })
     // users PROFILE update 
-    app.put('/users/:id' , async (req , res) => {
+    app.put('/users/:id' , verifyToken, async (req , res) => {
       const users = req.body
       const id = req.params.id
       const filter = {_id : new ObjectId(id)}
@@ -183,8 +255,26 @@ async function run() {
       const result = await MomentumDailyUserCollections.updateOne(filter , updateDoc , options)
       res.send(result)
     })
+    // payment
+    app.put('/users/paymentupdate/:email' , verifyToken ,  async (req , res) => {
+      const info = req.body;
+      const email = req.params.email;
+      const filter = {email: email}
+      const options = { upsert: true }
+      const updateDoc = {
+        $set: {
+          paymentEmail: info.paymentEmail,
+          transactionId: info.transactionId,
+          isPremium: info.isPremium,
+          date: info.date
+
+        },
+      };
+      const result = await MomentumDailyUserCollections.updateOne(filter , updateDoc , options)
+      res.send(result)
+    })
     // ADMIN ROLE PATCH 
-    app.patch('/users/admin/:id' , async (req , res) => {
+    app.patch('/users/admin/:id' , verifyToken , VerifyAdmin, async (req , res) => {
       const id = req.params.id
       const filter = { _id : new ObjectId(id)}
       const updatedAdmin = {
@@ -203,7 +293,7 @@ async function run() {
       res.send(result)
     })
     // publisher
-    app.post('/publisher' , verifyToken , VerifyAdmin, async (req , res) => {
+    app.post('/publisher' ,  verifyToken , VerifyAdmin, async (req , res) => {
       const publisher = req.body;
       const result = await MomentumDailyPublisherCollections.insertOne(publisher)
       res.send(result)
